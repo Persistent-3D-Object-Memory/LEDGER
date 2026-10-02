@@ -54,10 +54,12 @@ class View3D {
     host.prepend(this.r.domElement); this.scene = new THREE.Scene(); this.cam = new THREE.PerspectiveCamera(45, 1, 0.05, 200);
     this.ctl = new OrbitControls(this.cam, this.r.domElement); this.ctl.enableDamping = true; this.ctl.autoRotate = autoRotate; this.ctl.autoRotateSpeed = 0.5;
     new ResizeObserver(() => this.resize()).observe(host); this.resize(); this.hl = null; this.labels = new Map(); this.showPath = showPath; this.goal = null;
+    this.tagLayer = document.createElement("div"); this.tagLayer.className = "tags3d"; host.appendChild(this.tagLayer); this.tags = new Map();
   }
   resize() { const w = this.host.clientWidth, h = this.host.clientHeight; if (!w || !h) return; this.r.setSize(w, h, false); this.cam.aspect = w / h; this.cam.updateProjectionMatrix(); }
   set(X) {
     if (this.g) this.scene.remove(this.g); const g = (this.g = new THREE.Group()); this.scene.add(g); this.X = X; this.hl = null; this.labels = new Map();
+    this.tagLayer.innerHTML = ""; this.tags = new Map();
     const camPts = X.D.camera.map((c) => X.W2T(c.slice(1, 4)));
     const objPts = X.D.objects.flatMap((o) => o.traj.map((p) => X.W2T(p.slice(1))));
     const box = new THREE.Box3().setFromPoints(objPts.length ? objPts : camPts), ctr = box.getCenter(new THREE.Vector3());
@@ -93,7 +95,6 @@ class View3D {
       if (m.userData.born < 0) m.userData.born = now; const age = (now - m.userData.born) / 600; let s = age < 1 ? 1 + 1.6 * (1 - age) : 1;
       const lit = !this.hl || this.hl.has(m.userData.o.id); if (this.hl && lit) s *= 1.6;
       m.material.opacity = lit ? 1 : 0.07; m.position.copy(this.X.W2T(p)); m.scale.setScalar(s); m.visible = true; n++;
-      const lb = this.labels.get(m.userData.o.id); if (lb) lb.position.copy(m.position).add(new THREE.Vector3(0, this.rad * 0.06, 0));
     }
     for (const a of this.arrows) a.tube.visible = t >= a.t && !this.hl;
     const k = this.X.D.camera.findIndex((c) => c[0] > t); this.pathNow.geometry.setDrawRange(0, k === -1 ? this.X.D.camera.length : Math.max(1, k));
@@ -103,9 +104,20 @@ class View3D {
     for (const s of this.extra.children) if (s.isSprite) { const h = this.rad * 0.05; s.scale.set(h * s.userData.aspect, h, 1); }
     return n;
   }
-  highlight(ids, labels = true) {
-    this.hl = ids && ids.size ? ids : null; for (const s of this.labels.values()) this.extra.remove(s); this.labels.clear();
-    if (this.hl && labels) for (const id of this.hl) { const o = this.X.objById.get(id); if (!o) continue; const s = textSprite(o.name, col(id, 1, 72)); this.extra.add(s); this.labels.set(id, s); }
+  highlight(ids, keys = null) { this.hl = ids && ids.size ? ids : null; this.keys = keys || new Set(); }
+  placeTags() {                                                   // a name tag on every visible dot; overlapping tags give way to bigger ones
+    const w = this.host.clientWidth, h = this.host.clientHeight, placed = [], shown = new Set(), v = new THREE.Vector3();
+    const K = this.keys || new Set(), cand = this.nodes.filter((m) => m.visible && (!this.hl || this.hl.has(m.userData.o.id)))
+      .sort((a, b) => (K.has(b.userData.o.id) - K.has(a.userData.o.id)) || b.userData.o.n_obs - a.userData.o.n_obs);
+    for (const m of cand) {
+      v.copy(m.position).project(this.cam); if (v.z > 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05) continue;
+      const o = m.userData.o, x = ((v.x + 1) / 2) * w + 7, y = ((1 - v.y) / 2) * h - 9; let el = this.tags.get(o.id);
+      if (!el) { el = document.createElement("span"); el.textContent = o.name; el.style.borderLeftColor = col(o.id, 1, 66); this.tagLayer.appendChild(el); this.tags.set(o.id, el); el._w = el.offsetWidth || o.name.length * 6.4 + 14; }
+      const r = [x, y, x + el._w, y + 17];
+      if (!K.has(o.id) && placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) continue;
+      placed.push(r); shown.add(o.id); el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; el.classList.toggle("lit", !!this.hl); el.classList.toggle("key", K.has(o.id));
+    }
+    for (const [id, el] of this.tags) el.style.display = shown.has(id) ? "" : "none";
   }
   marker(p, color, label, size = 1) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(this.rad * 0.022 * size, 20, 14), new THREE.MeshBasicMaterial({ color })); m.position.copy(this.X.W2T(p)); this.extra.add(m);
@@ -115,7 +127,7 @@ class View3D {
   clearExtra() { for (const c of [...this.extra.children]) this.extra.remove(c); this.labels.clear(); }
   render() {
     if (this.goal) { this.ctl.target.lerp(this.goal.tgt, 0.06); this.cam.position.lerp(this.goal.pos, 0.06); if (this.cam.position.distanceTo(this.goal.pos) < 0.01) this.goal = null; }
-    this.ctl.update(); this.r.render(this.scene, this.cam);
+    this.ctl.update(); this.r.render(this.scene, this.cam); this.placeTags();
   }
 }
 
@@ -131,16 +143,18 @@ const vover = document.createElement("canvas"); vover.style.pointerEvents = "non
 const bar = $("bar"), fill = $("fill"), knob = $("knob");
 listeners.push((X) => {
   vid.src = X.A + X.D.video; for (const id of ["vpane", "mem3d"]) $(id).style.setProperty("--ar", `${X.D.res[0]}/${X.D.res[1]}`);
+  document.querySelector(".stage").style.setProperty("--arn", X.D.res[0] / X.D.res[1]);
   hero3d.set(X); bar.querySelectorAll(".tick").forEach((e) => e.remove());
   for (const o of X.moves) { const d = document.createElement("div"); d.className = "tick"; d.style.left = `${(100 * o.segs[1].t[0]) / X.D.duration}%`; bar.appendChild(d); }
   $("speedNote").textContent = X.speed > 1 ? `${X.speed}× time-lapse` : ""; vid.play().catch(() => {});
 });
-const tNow = () => (X ? Math.min((vid.currentTime || 0) * X.speed, X.D.duration) : 0);
-function seekFrom(e) { const r = bar.getBoundingClientRect(); vid.currentTime = (Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * X.D.duration) / X.speed; }
+let tFix = Q.get("t") !== null ? +Q.get("t") : null;           // deep link: open the memory at a moment (until the user plays)
+const tNow = () => (X ? Math.min(tFix ?? (vid.currentTime || 0) * X.speed, X.D.duration) : 0);
+function seekFrom(e) { tFix = null; const r = bar.getBoundingClientRect(); vid.currentTime = (Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * X.D.duration) / X.speed; }
 let dragging = false;
 bar.addEventListener("pointerdown", (e) => { dragging = true; bar.setPointerCapture(e.pointerId); seekFrom(e); });
 bar.addEventListener("pointermove", (e) => dragging && seekFrom(e)); bar.addEventListener("pointerup", () => (dragging = false));
-$("play").onclick = () => (vid.paused ? vid.play() : vid.pause());
+$("play").onclick = () => { tFix = null; vid.paused ? vid.play() : vid.pause(); };
 vid.addEventListener("play", () => { $("play").textContent = "❚❚"; $("phint").style.opacity = 0; hero3d.highlight(null); vctx.clearRect(0, 0, vover.width, vover.height); });
 vid.addEventListener("pause", () => { $("play").textContent = "▶"; $("phint").style.opacity = 1; });
 new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? vid.play().catch(() => {}) : vid.pause())), { threshold: 0.3 }).observe($("mem3d"));
@@ -280,7 +294,7 @@ function hoverPipe(e) {
 const cv = $("collapse"), cx2 = cv.getContext("2d"), stepsEl = $("steps"), mg = $("merges");
 let tiles = [], cstep = 0, hoverPile = null, piles = [], lastW = 0, autoStep = null;
 listeners.push((X) => {
-  const F = X.D.funnel; $("ctitle").innerHTML = `${F.detections.toLocaleString()} sightings.<br><span class="grad">${F.objects} things.</span>`;
+  const F = X.D.funnel; $("csub").innerHTML = `${F.detections.toLocaleString()} sightings → <b>${F.objects} objects</b> · drag the steps or hover a pile`;
   tiles = X.D.frames.flatMap((f) => f.dets.map((d) => ({ d: { ...d, t: f.t }, x: 0, y: 0, s: 0, a: 1, tx: 0, ty: 0, ts: 0, ta: 1 })));
   stepsEl.innerHTML = ""; [[F.detections, "boxes"], [F.lifted, "in 3D"], [F.clusters, "3D clusters"], [F.objects, "objects"]].forEach(([n, l], i) => {
     const b = document.createElement("button"); b.innerHTML = `<b>${n.toLocaleString()}</b>${l}`; b.onclick = () => setStep(i); stepsEl.appendChild(b); });
@@ -345,14 +359,18 @@ function runAsk(X) {
   $("askWho").textContent = `${T.answerer} · correct in ${T.consistency} runs`; $("askQ").textContent = T.question;
   $("askLbl").textContent = T.t !== undefined ? `asked at ${fmt(T.t)}` : "asked after the video";
   (T.options || []).forEach((o, i) => { const d = document.createElement("div"); d.className = "opt"; d.textContent = `${"ABCDE"[i]}. ${o}`; opts.appendChild(d); });
-  const seq = [() => (T.t !== undefined ? showFrame(X, T.t, T.box) : null)];
+  const cap = (t) => ($("askLbl").textContent = t);
+  const seq = [() => { if (T.t !== undefined) { showFrame(X, T.t, T.box); cap(`what you saw when asked (${fmt(T.t)})`); } else cap("the memory, after the whole video"); }];
   for (const s of T.steps) {
     const el = document.createElement("div"); el.className = "stepx";
     if (s.kind === "search") {
       const icon = { text: "⌕", time: "◷", position: "⌖" }[s.tool] || "⌕", ids = new Set(s.hits.flatMap((h) => h.obs));
       el.innerHTML = `<div class="dot" style="background:#3987e5">${icon}</div><div><span class="chip">search ${s.tool}: ${Array.isArray(s.query) ? s.query.map((v) => v.toFixed(1)).join(", ") : s.query}</span>
         <div class="moments">${s.hits.slice(0, 5).map((h) => `<div class="moment"><img src="${frameSrc(X, nearestFrame(X, h.t))}"><div><b>${fmt(h.t)}</b> · ${h.obs.length} objects</div></div>`).join("")}</div></div>`;
-      seq.push(() => { askImg.style.opacity = 0; ask3d.highlight(ids, ids.size <= 14);
+      const nm = s.hits.length;
+      const said = `${T.question} ${T.options ? T.options[T.answer_idx] : ""}`.toLowerCase();
+      const keys = new Set([...ids].filter((id) => { const o = X.objById.get(id); return o && [o.name, ...o.tags].some((n) => said.includes(n.toLowerCase())); }));
+      seq.push(() => { askImg.style.opacity = 0; ask3d.highlight(ids, keys); cap(`lit: the objects in the ${nm} memory moments this search returned`);
         const ps = [...ids].map((id) => posAt(X.objById.get(id), askT)).filter(Boolean);
         if (ps.length) { const c = ps.reduce((a, p) => a.add(X.W2T(p)), new THREE.Vector3()).multiplyScalar(1 / ps.length); ask3d.focus(c, ask3d.rad * 0.9); } });
     } else { el.innerHTML = `<div class="dot" style="background:#22b58a">✦</div><div class="think">${s.text}</div>`; seq.push(() => {}); }
@@ -362,14 +380,14 @@ function runAsk(X) {
   if (T.preds) {
     fin.innerHTML = `<div class="dot" style="background:#e0a21b">★</div><div><div class="verdict">${Object.entries(T.err_m).map(([n, e]) => `<span class="vb ${n === "LEDGER" ? "us" : ""}">${n} ${e == null ? "–" : e.toFixed(2) + " m"}</span>`).join("")}</div>
       <div class="mini" style="margin-top:6px">distance from the true position</div></div>`;
-    seq.push(() => { askImg.style.opacity = 0; ask3d.highlight(null); ask3d.clearExtra(); ask3d.marker(T.gt, 0xe0a21b, "★ truth", 2.4);
+    seq.push(() => { askImg.style.opacity = 0; ask3d.highlight(new Set([T.answer_ob ?? -1]), new Set([T.answer_ob])); ask3d.clearExtra(); ask3d.marker(T.gt, 0xe0a21b, "★ truth", 2.4); cap("★ true position · every method's answer, joined to it");
       const C = { LEDGER: 0x3987e5, ReMEmbR: 0xe8703a, OSNOM: 0x9085e9, DirectMe: 0xe66767, "no memory": 0x8a8984 };
       let k = 0; for (const [n, p] of Object.entries(T.preds)) if (p) { ask3d.marker(p, C[n] ?? 0xffffff, `${n} ${T.err_m[n].toFixed(2)} m`, n === "LEDGER" ? 1.6 : 0.7 + 0.35 * k++); ask3d.line(p, T.gt, C[n] ?? 0xffffff); }
       ask3d.focus(T.gt, ask3d.rad * 1.1); });
   } else {
     fin.innerHTML = `<div class="dot" style="background:#e0a21b">✓</div><div><div class="verdict"><span class="vb us">LEDGER ✓</span>${Object.entries(T.baselines).filter(([, v]) => v !== null)
       .map(([n, v]) => `<span class="vb ${v ? "ok" : "no"}">${n} ${v ? "✓" : "✗"}</span>`).join("")}</div><div class="mini" style="margin-top:6px">the same question, other methods</div></div>`;
-    seq.push(() => opts.children[T.answer_idx]?.classList.add("right"));
+    seq.push(() => { opts.children[T.answer_idx]?.classList.add("right"); cap("the answer, from the lit memory objects"); });
   }
   steps.appendChild(fin);
   let i = 0; const go = () => { if (i >= seq.length || X.task !== T) return; seq[i](); if (i > 0) steps.children[i - 1]?.classList.add("on"); i++; askTimer = setTimeout(go, i === 1 ? 1800 : 2400); };

@@ -39,6 +39,15 @@
   .pane.sq { aspect-ratio:1/1; }
   .pane video, .pane canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
   .pane video { object-fit:contain; background:#000; }
+  h1.title { font-size:clamp(30px,4.4vw,58px); line-height:1.02; letter-spacing:-.035em; margin:8px 0 0; font-weight:780; }
+  section.wide { max-width:1680px; }
+  .stage { width:min(100%, calc(2 * 74vh * var(--arn, 1) + 14px)); margin-left:auto; margin-right:auto; }
+  .csub { font-size:15px; color:var(--ink2); margin:-10px 0 12px; } .csub b { color:#fff; }
+  .tags3d { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .tags3d span { position:absolute; left:0; top:0; font:600 11px/15px Inter,-apple-system,sans-serif; color:#e9ecf1; background:rgba(8,10,13,.72);
+                 border-left:3px solid #888; padding:1px 6px; border-radius:4px; white-space:nowrap; will-change:transform; }
+  .tags3d span.lit { font-size:13px; line-height:17px; color:#fff; background:rgba(8,10,13,.88); }
+  .tags3d span.key { font-size:15px; line-height:20px; color:#fff; background:rgba(40,30,6,.92); border-left-color:#e0a21b !important; box-shadow:0 0 0 1px #e0a21b88; z-index:2; }
   .pane .lbl { position:absolute; left:14px; top:12px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#ffffffbb; text-shadow:0 1px 2px #000; pointer-events:none; }
   .ticker { position:absolute; left:14px; right:14px; bottom:12px; font-size:13px; color:#fff; text-shadow:0 1px 3px #000; pointer-events:none; }
   .count { position:absolute; right:14px; top:10px; font:600 12px ui-monospace,Menlo,monospace; color:#9cc3f5; pointer-events:none; }
@@ -117,13 +126,13 @@
 <body>
 <nav><b>LEDGER</b><a href="#watch">Watch</a><a href="#pipeline">Pipeline</a><a href="#collapse-s">Collapse</a><a href="#ask">Ask</a><a href="#results">Results</a></nav>
 
-<section id="watch" style="padding-top:104px">
-  <div class="eyebrow">Persistent 3D object memory for egocentric video</div>
-  <h1><span class="grad">Video in.</span><br>Memory out.</h1>
+<section id="watch" style="padding-top:78px;padding-bottom:0">
+  <div class="eyebrow">LEDGER</div>
+  <h1 class="title">Persistent 3D Object Memory<br><span class="grad">for Egocentric Videos</span></h1>
   <div class="btns"><a class="btn" href="#">Paper</a><a class="btn" href="#">Code</a><a class="btn" href="#pipeline">How it works ↓</a></div>
 </section>
 <div class="switch"><div id="switch"></div></div>
-<section style="padding-top:10px">
+<section class="wide" style="padding-top:6px">
   <div class="stage">
     <div class="pane" id="vpane"><video id="vid" muted playsinline loop preload="metadata"></video>
       <div class="lbl">what you saw</div><div class="ticker" id="ticker"></div><div class="paused-hint" id="phint">hover anything</div></div>
@@ -154,8 +163,9 @@
 <div id="sg"></div>
 
 <section id="collapse-s">
-  <div class="eyebrow">Under the hood · re-identification</div>
-  <h2 id="ctitle"></h2>
+  <div class="eyebrow">Under the hood · for dynamic, changing scenes</div>
+  <h2>Re-identification<br><span class="grad">through clustering and tracking.</span></h2>
+  <div class="csub" id="csub"></div>
   <div class="steps" id="steps"></div>
   <canvas id="collapse"></canvas>
   <div class="merges" id="merges"></div>
@@ -166,7 +176,7 @@
   <h2>Watch it look things up.</h2>
   <div class="ask">
     <div class="card" style="padding:0;overflow:hidden">
-      <div class="pane sq" id="askview" style="border:0;border-radius:0"><div class="lbl" id="askLbl"></div></div>
+      <div class="pane sq" id="askview" style="border:0;border-radius:0"><div class="lbl" id="askLbl" style="text-transform:none;letter-spacing:0;font-size:13px;right:14px"></div></div>
     </div>
     <div class="card">
       <div class="mini" id="askWho"></div>
