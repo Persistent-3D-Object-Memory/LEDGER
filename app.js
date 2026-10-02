@@ -215,7 +215,7 @@ function buildPills() { pills.innerHTML = ""; if (stage === "segment" && !X.D.ma
   for (const s of STAGES) { if (s.masks && !X.D.masks) continue; const b = document.createElement("button"); b.className = "pill"; b.dataset.k = s.k;
     b.innerHTML = `<i style="background:${s.c}"></i>${s.n}`; b.onclick = () => { stage = s.k; draw(); }; pills.appendChild(b); } }
 listeners.push((X) => {
-  buildPills(); frameImgs = new Array(X.D.frames.length); viewer.style.setProperty("--ar", `${X.D.res[0]}/${X.D.res[1]}`);
+  buildPills(); frameImgs = new Array(X.D.frames.length); rectImgs = new Array(X.D.frames.length); viewer.style.setProperty("--ar", `${X.D.res[0]}/${X.D.res[1]}`);
   fi = Q.get("frame") !== null && X.name === (Q.get("ds") || "hdepic") ? +Q.get("frame") : X.D.frames.reduce((b, f, i, F) => { const n = (g) => new Set(g.dets.filter((d) => d.ob !== undefined).map((d) => d.ob)).size; return n(f) > n(F[b]) ? i : b; }, 0);
   strip.innerHTML = ""; X.D.frames.forEach((f, i) => { const im = document.createElement("img"); im.loading = "lazy"; im.src = frameSrc(X, i); im.title = fmt(f.t); im.onclick = () => { fi = i; draw(); }; strip.appendChild(im); });
   sizeViewer();
@@ -233,8 +233,13 @@ function chip(ctx, x, y, text, color, S) {
   ctx.beginPath(); ctx.roundRect(x, y - h, w, h, h / 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#fff"; ctx.fillText(text, x + S * 0.009, y - h * 0.3); return w;
 }
 function poly(ctx, p, W, H) { ctx.beginPath(); for (let i = 0; i < p.length; i += 2) (i ? ctx.lineTo : ctx.moveTo).call(ctx, p[i] * W, p[i + 1] * H); ctx.closePath(); }
+const BOX_EDGES = [[0, 1], [1, 5], [5, 4], [4, 0], [2, 3], [3, 7], [7, 6], [6, 2], [0, 2], [1, 3], [4, 6], [5, 7]];
+let rectImgs = [];
 function renderOverlay(f, W, H) {
   overlay.width = W; overlay.height = H; const c = octx, S = Math.max(W, H); c.clearRect(0, 0, W, H); if (stage === "look") return;
+  if (stage === "lift" && X.D.lift_view === "rect") {             // HD-EPIC lifts in the undistorted (rectified) view: show that view
+    const im = rectImgs[fi]; if (im) c.drawImage(im, 0, 0, W, H);
+  }
   if (stage === "tag") {
     c.fillStyle = "rgba(0,0,0,.35)"; c.fillRect(0, 0, W, H); const placed = new Set(); let y = H * 0.08, x = W * 0.03;
     for (const tg of f.tags) { const d = f.dets.filter((q) => q.tag === tg).sort((a, b) => b.s - a.s)[0]; if (d) { chip(c, d.box[0] * W, d.box[1] * H, tg, "#e0a21b", S); placed.add(tg); } }
@@ -246,7 +251,17 @@ function renderOverlay(f, W, H) {
     if (stage === "detect") { c.strokeStyle = d.s > 0.25 ? "#3987e5" : "rgba(57,135,229,.45)"; c.lineWidth = S * 0.0028; c.strokeRect(x0, y0, x1 - x0, y1 - y0); if (d.s > 0.25) chip(c, x0, y0, `${d.tag} ${d.s.toFixed(2)}`, "#3987e5", S); }
     else if (stage === "segment") { if (!d.poly.length) continue; poly(c, d.poly, W, H); c.fillStyle = `hsla(${(d.tag.length * 47) % 360},70%,60%,.42)`; c.fill(); c.strokeStyle = "#fff"; c.lineWidth = S * 0.0015; c.stroke(); }
     else if (stage === "lift") {
-      if (!d.cam) { c.strokeStyle = "rgba(255,255,255,.16)"; c.lineWidth = S * 0.002; c.strokeRect(x0, y0, x1 - x0, y1 - y0); continue; }
+      if (!d.cam) { if (X.D.lift_view !== "rect") { c.strokeStyle = "rgba(255,255,255,.16)"; c.lineWidth = S * 0.002; c.strokeRect(x0, y0, x1 - x0, y1 - y0); } continue; }
+      if (d.b3) {                                                  // the lifted 3D box, projected into the image the lift used
+        const P = d.b3.map(([u, v]) => [u * W, v * H]), colr = d.ob !== undefined ? col(d.ob, 1, 64) : "#22b58a";
+        c.lineWidth = S * 0.0024; c.strokeStyle = colr; c.globalAlpha = 0.95;
+        for (const [i, j] of BOX_EDGES) { c.beginPath(); c.moveTo(...P[i]); c.lineTo(...P[j]); c.stroke(); }
+        c.globalAlpha = 0.16; c.fillStyle = colr; c.beginPath(); for (const k of [0, 1, 5, 4]) c.lineTo(...P[k]); c.closePath(); c.fill(); c.globalAlpha = 1;
+        const cx = P.reduce((a, p) => a + p[0], 0) / 8, cy = P.reduce((a, p) => a + p[1], 0) / 8;
+        c.fillStyle = "#fff"; c.beginPath(); c.arc(cx, cy, S * 0.004, 0, 7); c.fill();
+        chip(c, cx + S * 0.008, cy - S * 0.006, `${Math.hypot(...d.cam).toFixed(1)} m`, colr, S); continue;
+      }
+      if (X.D.lift_view === "rect") continue;
       const z = Math.hypot(...d.cam), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r = (S * 0.03) / Math.max(0.4, z);
       const g = c.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2); g.addColorStop(0, "rgba(34,181,138,.9)"); g.addColorStop(1, "rgba(34,181,138,0)");
       c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r * 2.2, 0, 7); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(cx, cy, S * 0.004, 0, 7); c.fill();
@@ -271,7 +286,7 @@ const SIDE = {
   tag: (f) => [`open-vocabulary tags · Qwen3.5-9B`, `<div class="tagcloud">${f.tags.map((t) => `<span>${t}</span>`).join("")}</div>`],
   detect: (f) => [`boxes · ${X.D.masks ? "SAM3" : "YOLO-World"}`, `<div class="big3">${f.dets.length}</div><div class="mini">boxes in this frame</div>`],
   segment: (f) => [`masks · SAM3`, `<div class="big3">${f.dets.filter((d) => d.poly.length).length}</div><div class="mini">object masks</div>`],
-  lift: (f) => [`metric 3D · WildDet3D`, `<div class="big3">${f.dets.filter((d) => d.cam).length}</div><div class="mini">boxes placed in 3D, labelled with their distance</div>`],
+  lift: (f) => [`metric 3D boxes · WildDet3D`, `<div class="big3">${f.dets.filter((d) => d.cam).length}</div><div class="mini">2D boxes lifted to 3D boxes, labelled with the distance to their centre${X.D.lift_view === "rect" ? " · shown in the undistorted view the lift uses" : ""}</div>`],
   track: (f) => [`one identity per object`, `<div class="big3">${new Set(f.dets.filter((d) => d.ob !== undefined).map((d) => d.ob)).size}</div><div class="mini">objects · same colour = same object in every frame</div>`],
   ledger: () => [`the memory`, `<div class="mini" style="font-size:14px;color:#cfd3da">hover any object</div>`],
 };
@@ -283,6 +298,7 @@ async function draw() {
   const nl = f.dets.filter((d) => d.cam).length, no = new Set(f.dets.filter((d) => d.ob !== undefined).map((d) => d.ob)).size;
   $("frameStats").innerHTML = [[f.dets.length, "boxes"], [nl, "in 3D"], [no, "objects"]].map(([a, b]) => `<div><div class="big3" style="font-size:28px">${a}</div><div class="mini">${b}</div></div>`).join("");
   const i0 = fi, X0 = X, im = frameImgs[fi] || (frameImgs[fi] = await loadImg(frameSrc(X, fi))); if (i0 !== fi || X0 !== X || !im) return;
+  if (stage === "lift" && X.D.lift_view === "rect" && !rectImgs[fi]) { rectImgs[fi] = await loadImg(`${X.A}rect/${String(fi).padStart(2, "0")}.jpg`); if (i0 !== fi || X0 !== X) return; }
   const W = vbase.width, H = vbase.height; if (!W) return; bctx.drawImage(im, 0, 0, W, H); renderOverlay(f, W, H); drawLens();
 }
 function hoverPipe(e) {
