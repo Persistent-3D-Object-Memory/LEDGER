@@ -1,0 +1,108 @@
+{
+ "answerer": "ReMEmbR's agent reading LEDGER's memory",
+ "question": "Where did I see the fire extinguisher?",
+ "t": 15.0,
+ "options": [
+  "To the right of the escalator.",
+  "Behind the escalator.",
+  "To the left of the escalator in front of you.",
+  "It was to the left of the escalator behind you, not the one directly ahead.",
+  "You saw it to the left of an escalator off to your right rather than the escalator in front."
+ ],
+ "answer_idx": 2,
+ "steps": [
+  {
+   "kind": "search",
+   "tool": "text",
+   "query": "fire extinguisher near escalator left right behind",
+   "hits": [
+    {
+     "t": 8.0,
+     "pos": [
+      -0.208,
+      -0.061,
+      0.162
+     ],
+     "obs": [
+      58,
+      28,
+      10,
+      11,
+      72,
+      73,
+      12,
+      14
+     ],
+     "text": "The camera wearer is standing on an escalator in a shopping mall, looking at people ahead. Place: escalator. Objects seen: poster (The object is a white rectangular sign with red and black Chinese text, mounted on the gl"
+    },
+    {
+     "t": 4.0,
+     "pos": [
+      -0.705,
+      -0.062,
+      0.47
+     ],
+     "obs": [
+      28,
+      10,
+      11,
+      56,
+      73
+     ],
+     "text": "The camera wearer is walking down an escalator in a mall, with people ahead and a food stall to the left. Place: escalator. Objects seen: store (refrigerated display case filled with packaged food items, positioned on th"
+    },
+    {
+     "t": 12.0,
+     "pos": [
+      0.104,
+      -0.078,
+      -0.193
+     ],
+     "obs": [
+      58,
+      28
+     ],
+     "text": "The camera wearer is riding an escalator in a supermarket, with people ahead and food displays to the left. Place: escalator. Objects seen: poster (The object is a white rectangular sign with red and black Chinese text, "
+    },
+    {
+     "t": 0.0,
+     "pos": [
+      -2.034,
+      -0.011,
+      1.483
+     ],
+     "obs": [
+      0,
+      55,
+      3,
+      4,
+      5,
+      6,
+      8,
+      27,
+      43,
+      46,
+      49
+     ],
+     "text": "The camera wearer is walking through a shopping mall, passing by an escalator and people carrying bags. Place: supermarket. Objects seen: jacket (black jacket with gray stripes on the back, worn by a person walking throu"
+    }
+   ]
+  },
+  {
+   "kind": "think",
+   "text": "The fire extinguisher was seen at time 00:00:08 while on the escalator. Relative to the escalator view, it appeared on the left side ahead near the food stall area, matching 'to the left of the escalator in front of you'."
+  }
+ ],
+ "answer": {
+  "text": "C",
+  "position": null,
+  "time": null
+ },
+ "consistency": "3/3",
+ "baselines": {
+  "ReMEmbR": false,
+  "DirectMe": null,
+  "48 frames": false,
+  "no memory": false
+ }
+}

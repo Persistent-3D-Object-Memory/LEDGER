@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEDGER — persistent 3D object memory</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111419'/%3E%3Cpath d='M9 7v18h14' stroke='%233987e5' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='21' cy='11' r='3' fill='%23e8703a'/%3E%3C/svg%3E">
+<meta name="description" content="LEDGER turns egocentric video into a 3D object memory that any agent can query.">
+<style>
+  :root {
+    --bg:#060708; --bg2:#0d0f12; --panel:#111419; --line:#22272f; --ink:#f3f4f6; --ink2:#a4aab4; --ink3:#666d78;
+    --blue:#3987e5; --orange:#e8703a; --aqua:#22b58a; --violet:#9085e9; --yellow:#e0a21b; --red:#e66767; --ar:1/1;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system,"SF Pro Text","Inter","Segoe UI",Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  a { color:inherit; }
+  nav { position:fixed; top:0; left:0; right:0; z-index:50; display:flex; align-items:center; gap:22px; padding:12px 22px;
+        background:linear-gradient(#060708f2,#06070800); font-size:13px; color:var(--ink2); }
+  nav b { color:var(--ink); letter-spacing:.18em; font-size:13px; margin-right:auto; }
+  nav a { text-decoration:none; } nav a:hover { color:var(--ink); }
+  @media (max-width:700px) { nav a { display:none; } }
+  .switch { position:sticky; top:46px; z-index:40; display:flex; justify-content:center; padding:8px 0; pointer-events:none; }
+  .switch div { pointer-events:auto; display:flex; gap:4px; background:#0d0f12e6; backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:999px; padding:4px; }
+  .switch button { border:0; background:transparent; color:var(--ink2); padding:7px 14px; border-radius:999px; cursor:pointer; font-size:13px; display:flex; gap:7px; align-items:baseline; }
+  .switch button small { color:var(--ink3); font-size:11px; }
+  .switch button.on { background:#1f2630; color:#fff; } .switch button.on small { color:#9cc3f5; }
+  section { position:relative; padding:84px 20px 50px; max-width:1240px; margin:0 auto; }
+  .eyebrow { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink3); }
+  h1 { font-size:clamp(46px,8vw,104px); line-height:.92; letter-spacing:-.045em; margin:10px 0 0; font-weight:800; }
+  h2 { font-size:clamp(34px,5.2vw,64px); line-height:1; letter-spacing:-.035em; margin:6px 0 22px; font-weight:780; }
+  .grad { background:linear-gradient(90deg,#fff,#9cc3f5 60%,#87e0c0); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .btns { display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; }
+  .btn { border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:13px; color:var(--ink); text-decoration:none; background:var(--bg2); }
+  .btn:hover { border-color:#3a414c; }
+  .stage { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:30px; align-items:start; }
+  @media (max-width:880px) { .stage { grid-template-columns:1fr; } }
+  .pane { position:relative; background:var(--panel); border:1px solid var(--line); border-radius:20px; overflow:hidden; aspect-ratio:var(--ar); }
+  .pane.sq { aspect-ratio:1/1; }
+  .pane video, .pane canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .pane video { object-fit:contain; background:#000; }
+  .pane .lbl { position:absolute; left:14px; top:12px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#ffffffbb; text-shadow:0 1px 2px #000; pointer-events:none; }
+  .ticker { position:absolute; left:14px; right:14px; bottom:12px; font-size:13px; color:#fff; text-shadow:0 1px 3px #000; pointer-events:none; }
+  .count { position:absolute; right:14px; top:10px; font:600 12px ui-monospace,Menlo,monospace; color:#9cc3f5; pointer-events:none; }
+  .paused-hint { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#000a; border:1px solid #ffffff33; border-radius:999px;
+                 padding:6px 12px; font-size:12px; color:#fff; pointer-events:none; opacity:0; transition:opacity .3s; }
+  .transport { display:flex; align-items:center; gap:12px; margin-top:12px; }
+  .play { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--bg2); color:var(--ink); cursor:pointer; font-size:14px; flex:0 0 auto; }
+  .bar { position:relative; flex:1; height:34px; cursor:pointer; }
+  .bar .track { position:absolute; left:0; right:0; top:15px; height:4px; border-radius:2px; background:#252a32; }
+  .bar .fill { position:absolute; left:0; top:15px; height:4px; border-radius:2px; background:var(--blue); }
+  .bar .tick { position:absolute; top:9px; width:2px; height:16px; border-radius:1px; background:#e8703a; opacity:.85; }
+  .bar .knob { position:absolute; top:9px; width:14px; height:14px; margin-left:-7px; margin-top:1px; border-radius:50%; background:#fff; box-shadow:0 0 0 4px #3987e533; }
+  .time { font:12px ui-monospace,Menlo,monospace; color:var(--ink3); width:92px; text-align:right; }
+  .hint { font-size:12px; color:var(--ink3); display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; }
+  .hint kbd { font:11px ui-monospace,Menlo,monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 5px; color:var(--ink2); }
+  .pills { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .pill { border:1px solid var(--line); background:var(--bg2); color:var(--ink2); border-radius:999px; padding:7px 14px; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:8px; }
+  .pill i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .pill.on { color:#fff; border-color:#5a6370; background:#1a1f26; }
+  .pipe { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:14px; }
+  @media (max-width:880px) { .pipe { grid-template-columns:1fr; } }
+  .viewer { cursor:none; } .viewer.free { cursor:default; }
+  .side { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:16px; position:relative; }
+  .strip { display:flex; gap:4px; overflow-x:auto; padding:4px 0 2px; scrollbar-width:thin; }
+  .strip img { flex:0 0 auto; width:46px; height:46px; object-fit:cover; border-radius:6px; cursor:pointer; opacity:.5; border:1px solid transparent; }
+  .strip img.on { opacity:1; border-color:#fff; }
+  .tagcloud { display:flex; flex-wrap:wrap; gap:6px; }
+  .tagcloud span { font-size:12px; padding:3px 9px; border-radius:999px; background:#1a1f26; border:1px solid var(--line); color:var(--ink2); animation:pop .35s ease both; }
+  @keyframes pop { from { transform:scale(.6); opacity:0; } to { transform:none; opacity:1; } }
+  .big3 { font:800 44px/1 -apple-system,Inter,sans-serif; letter-spacing:-.03em; }
+  .mini { font-size:12px; color:var(--ink3); }
+  #sg { position:fixed; z-index:60; pointer-events:none; opacity:0; transition:opacity .15s; width:330px; }
+  #sg.on { opacity:1; }
+  #sg svg { width:330px; height:330px; display:block; filter:drop-shadow(0 10px 30px #000c); }
+  .steps { display:flex; margin:6px 0 16px; border:1px solid var(--line); border-radius:999px; overflow:hidden; width:max-content; max-width:100%; }
+  .steps button { background:var(--bg2); color:var(--ink2); border:0; padding:10px 16px; cursor:pointer; font-size:13px; border-right:1px solid var(--line); }
+  .steps button:last-child { border-right:0; } .steps button.on { background:#1d2632; color:#fff; }
+  .steps b { font:700 15px ui-monospace,Menlo,monospace; margin-right:6px; color:#fff; }
+  #collapse { width:100%; height:600px; display:block; background:var(--panel); border:1px solid var(--line); border-radius:20px; }
+  .merges { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+  .merge { display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:8px 12px; font-size:13px; color:var(--ink2); cursor:pointer; }
+  .merge canvas { width:34px; height:34px; border-radius:6px; } .merge:hover { border-color:#3a414c; color:#fff; }
+  /* ask */
+  .ask { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; }
+  @media (max-width:880px) { .ask { grid-template-columns:1fr; } }
+  .qbubble { font-size:clamp(20px,2.4vw,28px); line-height:1.2; letter-spacing:-.01em; font-weight:650; }
+  .opts { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .opt { font-size:13px; color:var(--ink2); border:1px solid var(--line); border-radius:10px; padding:7px 10px; transition:all .4s; }
+  .opt.right { border-color:#22b58a; color:#fff; background:#0f2a22; }
+  .tl { position:relative; margin-top:14px; }
+  .stepx { display:grid; grid-template-columns:28px 1fr; gap:10px; padding:10px 0; opacity:.15; transition:opacity .5s; }
+  .stepx.on { opacity:1; }
+  .dot { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; color:#06070a; }
+  .chip { display:inline-block; font:12px ui-monospace,Menlo,monospace; padding:3px 9px; border-radius:7px; background:#14243a; border:1px solid #2b5d9c; color:#cfe3fb; }
+  .moments { display:flex; gap:8px; overflow-x:auto; padding:8px 0 2px; }
+  .moment { flex:0 0 auto; width:132px; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--bg2); font-size:11px; color:var(--ink2); }
+  .moment img { width:132px; height:86px; object-fit:cover; display:block; }
+  .moment div { padding:5px 7px; } .moment b { color:#9cc3f5; font-weight:600; }
+  .think { font-size:13px; color:#cfd3da; border-left:2px solid #22b58a; padding-left:10px; }
+  .verdict { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .vb { font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); color:var(--ink2); }
+  .vb.ok { border-color:#22b58a; color:#87e0c0; } .vb.no { color:#666d78; text-decoration:line-through; } .vb.us { border-color:#3987e5; color:#cfe3fb; background:#13223a; }
+  .charts { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:980px) { .charts { grid-template-columns:1fr; } }
+  .chart { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:16px; position:relative; }
+  .chart svg { width:100%; height:auto; display:block; overflow:visible; }
+  .tip { position:absolute; pointer-events:none; background:#1b2028; border:1px solid #333a45; border-radius:8px; padding:6px 9px; font-size:12px; color:#fff; opacity:0; transition:opacity .12s; white-space:nowrap; z-index:5; }
+  footer { color:var(--ink3); font-size:12px; text-align:center; padding:40px 20px 60px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<nav><b>LEDGER</b><a href="#watch">Watch</a><a href="#pipeline">Pipeline</a><a href="#collapse-s">Collapse</a><a href="#ask">Ask</a><a href="#results">Results</a></nav>
+
+<section id="watch" style="padding-top:104px">
+  <div class="eyebrow">Persistent 3D object memory for egocentric video</div>
+  <h1><span class="grad">Video in.</span><br>Memory out.</h1>
+  <div class="btns"><a class="btn" href="#">Paper</a><a class="btn" href="#">Code</a><a class="btn" href="#pipeline">How it works ↓</a></div>
+</section>
+<div class="switch"><div id="switch"></div></div>
+<section style="padding-top:10px">
+  <div class="stage">
+    <div class="pane" id="vpane"><video id="vid" muted playsinline loop preload="metadata"></video>
+      <div class="lbl">what you saw</div><div class="ticker" id="ticker"></div><div class="paused-hint" id="phint">hover anything</div></div>
+    <div class="pane" id="mem3d"><div class="lbl">what LEDGER remembers</div><div class="count" id="count"></div></div>
+  </div>
+  <div class="transport"><button class="play" id="play" aria-label="play / pause">❚❚</button>
+    <div class="bar" id="bar"><div class="track"></div><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div>
+    <div class="time" id="time">0:00</div></div>
+  <div class="hint"><span>pause, then hover the video</span><span>drag to orbit</span><span><span style="color:#e8703a">▮</span> an object moved</span><span id="speedNote"></span></div>
+</section>
+
+<section id="pipeline">
+  <div class="eyebrow">Under the hood</div>
+  <h2>See every stage.</h2>
+  <div class="pills" id="pills"></div>
+  <div class="pipe">
+    <div>
+      <div class="pane viewer" id="viewer"><canvas id="vbase"></canvas><canvas id="vlens"></canvas><div class="lbl" id="vlabel"></div></div>
+      <div class="strip" id="strip"></div>
+      <div class="hint"><span>move the lens</span><span><kbd>space</kbd> lens on/off</span><span><kbd>←</kbd><kbd>→</kbd> frames</span><span>“Ledger”: hover an object</span></div>
+    </div>
+    <div class="side">
+      <div class="card"><div class="mini" id="sideTitle"></div><div id="sideBody" style="margin-top:10px"></div></div>
+      <div class="card"><div class="mini">this frame</div><div style="display:flex;gap:22px;margin-top:8px" id="frameStats"></div></div>
+    </div>
+  </div>
+</section>
+<div id="sg"></div>
+
+<section id="collapse-s">
+  <div class="eyebrow">Under the hood · re-identification</div>
+  <h2 id="ctitle"></h2>
+  <div class="steps" id="steps"></div>
+  <canvas id="collapse"></canvas>
+  <div class="merges" id="merges"></div>
+</section>
+
+<section id="ask">
+  <div class="eyebrow">Ask it anything</div>
+  <h2>Watch it look things up.</h2>
+  <div class="ask">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="pane sq" id="askview" style="border:0;border-radius:0"><div class="lbl" id="askLbl"></div></div>
+    </div>
+    <div class="card">
+      <div class="mini" id="askWho"></div>
+      <div class="qbubble" id="askQ" style="margin-top:6px"></div>
+      <div class="opts" id="askOpts"></div>
+      <div class="tl" id="askSteps"></div>
+      <button class="btn" id="replay" style="margin-top:8px;cursor:pointer">↺ replay</button>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="eyebrow">Results</div>
+  <h2>Ahead where memory matters.</h2>
+  <div class="charts">
+    <div class="chart" id="c1"><div class="mini">HD-EPIC · accuracy</div><svg></svg><div class="tip"></div></div>
+    <div class="chart" id="c2"><div class="mini">Ego4D VQ3D · median 3D error (m) · lower is better</div><svg></svg><div class="tip"></div></div>
+    <div class="chart" id="c3"><div class="mini">UCS-Bench · accuracy vs video length</div><svg></svg><div class="tip"></div></div>
+  </div>
+</section>
+<footer>LEDGER · anonymous submission</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

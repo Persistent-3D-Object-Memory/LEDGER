@@ -1,0 +1,122 @@
+{
+ "answerer": "ReMEmbR's agent reading LEDGER's memory",
+ "question": "Which of these objects did the person put in/on the highlighted item?",
+ "t": 156.0,
+ "options": [
+  "tea towel, baking paper, hand blender cup",
+  "baking tray",
+  "shelf, baking paper, hand blender cup",
+  "orange towel, shelf",
+  "Nothing"
+ ],
+ "answer_idx": 1,
+ "box": [
+  0.2879053811960464,
+  0.42768091403243247,
+  0.5947347350405376,
+  0.731389904383393
+ ],
+ "steps": [
+  {
+   "kind": "search",
+   "tool": "time",
+   "query": "00:02:36",
+   "hits": [
+    {
+     "t": 156.0,
+     "pos": [
+      -0.985,
+      -0.287,
+      -0.501
+     ],
+     "obs": [
+      12,
+      29,
+      55,
+      145,
+      19,
+      31,
+      56,
+      71,
+      73,
+      74,
+      76,
+      85
+     ],
+     "text": "The camera wearer is opening the oven door in a kitchen. Objects seen: tongs (The object is a pair of tongs that was moved from a cluttered kitchen counter near a sink,...) at (-2.0, -0.2, -0.6); storage bin (The object "
+    },
+    {
+     "t": 152.0,
+     "pos": [
+      -0.891,
+      -0.836,
+      0.071
+     ],
+     "obs": [
+      52,
+      79,
+      49,
+      89,
+      134
+     ],
+     "text": "The camera wearer is reaching into a kitchen cabinet to grab dishes while standing near the sink. Objects seen: frying pan (The object is a black frying pan that was moved from a wooden countertop next to a red-handled.."
+    },
+    {
+     "t": 160.0,
+     "pos": [
+      -0.551,
+      -0.5,
+      0.068
+     ],
+     "obs": [
+      121,
+      126,
+      122,
+      142,
+      100,
+      137,
+      28,
+      20,
+      94,
+      120,
+      131,
+      148
+     ],
+     "text": "The camera wearer is looking at a room with a table, plants, and artwork on the walls. Objects seen: radiator (The object is a white, ribbed radiator that was consistently observed mounted on the wall beneath a wooden..."
+    },
+    {
+     "t": 148.0,
+     "pos": [
+      -0.371,
+      -1.09,
+      -0.455
+     ],
+     "obs": [
+      58,
+      77,
+      81,
+      137
+     ],
+     "text": "The camera wearer is looking at a kitchen counter with an open dishwasher, a tray, and various items on top. Objects seen: bag (The object is a dark-colored bag that was initially observed as a crumpled brown paper bag r"
+    }
+   ]
+  },
+  {
+   "kind": "think",
+   "text": "At time 00:02:36, the indicated bounding box corresponds to the open oven area, and the observed action mentions a black baking tray being pulled out of the open oven. The object associated with being put in/on that item is the baking tray."
+  }
+ ],
+ "answer": {
+  "text": "B",
+  "position": null,
+  "time": null
+ },
+ "consistency": "3/3",
+ "baselines": {
+  "AMEGO": false,
+  "ReMEmbR": true,
+  "DirectMe": false,
+  "OSNOM": true,
+  "no memory": false
+ }
+}

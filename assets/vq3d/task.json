@@ -1,0 +1,143 @@
+{
+ "answerer": "ReMEmbR's agent reading LEDGER's memory",
+ "question": "Where is the plastic bottle?",
+ "gt": [
+  -5.738,
+  2.971,
+  1.006
+ ],
+ "steps": [
+  {
+   "kind": "search",
+   "tool": "text",
+   "query": "plastic bottle",
+   "hits": [
+    {
+     "t": 1.5,
+     "pos": [
+      -3.63,
+      2.367,
+      1.682
+     ],
+     "obs": [
+      16,
+      46,
+      50,
+      54,
+      60,
+      56
+     ],
+     "text": "Objects seen: glove at (-3.34, 1.61, 0.48); smartphone at (-4.59, 3.33, 1.27); plastic cup at (-4.25, 3.54, 1.22); bottle at (-5.64, 3.08, 0.88); keyboard at (-5.32, 3.22, 0.76); shelf at (-4.40, 3.58, 1.07)."
+    },
+    {
+     "t": 271.0,
+     "pos": [
+      -3.636,
+      1.483,
+      1.875
+     ],
+     "obs": [
+      16,
+      21,
+      47
+     ],
+     "text": "Objects seen: glove at (-3.34, 1.61, 0.48); wheel at (-1.90, 0.70, -0.09); trash can at (-1.85, 3.35, 0.04)."
+    },
+    {
+     "t": 425.0,
+     "pos": [
+      0.204,
+      1.881,
+      1.529
+     ],
+     "obs": [
+      13,
+      49,
+      53
+     ],
+     "text": "Objects seen: glove at (0.05, 2.41, 0.32); bucket at (0.76, -0.66, -0.03); metal plate at (1.12, 1.27, 0.00)."
+    },
+    {
+     "t": 257.0,
+     "pos": [
+      -3.6,
+      1.716,
+      1.96
+     ],
+     "obs": [
+      21,
+      26,
+      47,
+      49
+     ],
+     "text": "Objects seen: wheel at (-1.90, 0.70, -0.09); seat at (-0.87, 0.91, 0.36); trash can at (-1.85, 3.35, 0.04); bucket at (0.76, -0.66, -0.03)."
+    },
+    {
+     "t": 190.5,
+     "pos": [
+      -0.635,
+      3.099,
+      1.576
+     ],
+     "obs": [
+      13,
+      5,
+      45,
+      28,
+      43,
+      18
+     ],
+     "text": "Objects seen: glove at (-0.18, 2.18, 0.37); screwdriver at (0.16, 3.04, 0.54); scissors at (-0.07, 3.14, 0.39); box at (-0.14, 3.44, 0.42); wheel at (-0.42, 1.29, -0.34); plastic container at (-0.08, 3.88, 0.19); cloth a"
+    }
+   ]
+  },
+  {
+   "kind": "think",
+   "text": "I do not see an object labeled exactly 'plastic bottle', but I did observe a 'bottle' earlier. Given the wording and nearby plastic items, the best guess is that this refers to that bottle."
+  }
+ ],
+ "answer": {
+  "text": "The plastic bottle is at approximately (-5.64, 3.08, 0.88).",
+  "position": [
+   -5.64,
+   3.08,
+   0.88
+  ],
+  "time": null
+ },
+ "consistency": "3/3",
+ "preds": {
+  "LEDGER": [
+   -5.64,
+   3.08,
+   0.88
+  ],
+  "ReMEmbR": [
+   -3.01,
+   2.53,
+   1.71
+  ],
+  "OSNOM": [
+   -0.6471783561970661,
+   3.670927387644901,
+   0.8865383300235796
+  ],
+  "DirectMe": [
+   -2.812587853502414,
+   2.3237441820589817,
+   1.2425024240760936
+  ],
+  "no memory": [
+   -2.6972015146758843,
+   1.9971405371290176,
+   1.3372907737900177
+  ]
+ },
+ "err_m": {
+  "LEDGER": 0.19,
+  "ReMEmbR": 2.85,
+  "OSNOM": 5.14,
+  "DirectMe": 3.01,
+  "no memory": 3.21
+ }
+}
